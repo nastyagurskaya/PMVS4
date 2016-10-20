@@ -4,9 +4,13 @@
 #include <string.h>
 #include <errno.h>
 
-static const char *filepath = "/file";
-static const char *filename = "file";
-static const char *filecontent = "I'm the content of the only file available there\n";
+#define NAME_LENGTH 255
+static int *file_offset_end;
+static const char **filename;
+static int *file_size;
+static int file_count = 0;
+#define STORE_FILE "/home/nastya/Desktop/PMVS4/all_file"
+#define BUF_FILE "/home/nastya/Desktop/PMVS4/buffer_file"
 struct file_info {
 	char file_name[NAME_LENGTH];
 	int file_size;
@@ -30,12 +34,18 @@ static int getattr_callback(const char *path, struct stat *stbuf) {
     stbuf->st_nlink = 2;
     return 0;
   }
-
-  if (strcmp(path, filepath) == 0) {
-    stbuf->st_mode = S_IFREG | 0777;
-    stbuf->st_nlink = 1;
-    stbuf->st_size = strlen(filecontent);
-    return 0;
+  else {
+	int index = path_index(path);
+	if(index == -1){
+		return -ENOENT;
+	}
+	stbuf->st_mode = S_IFREG | 0777;
+	stbuf->st_nlink = 1;
+	int start = index == 0 ? 0 : file_offset_end[index-1];
+		int size = file_offset_end[index]-start;
+		printf("%d\n", size);
+	stbuf->st_size = file_size[index];
+	return 0;
   }
 
   return -ENOENT;
@@ -49,13 +59,20 @@ static int readdir_callback(const char *path, void *buf, fuse_fill_dir_t filler,
   filler(buf, ".", NULL, 0);
   filler(buf, "..", NULL, 0);
 
-  filler(buf, filename, NULL, 0);
+	for (i = 0; i < file_count; i++) {
+		if(strlen(file_name[i])!= 0) {
+  		filler(buf, filename[i]+1, NULL, 0);
+		}
+	}
 
   return 0;
 }
 
 static int open_callback(const char *path, struct fuse_file_info *fi) {
-  return 0;
+	int index = path_index(path);
+	if (index == -1)
+		return -ENOENT;
+  	return 0;
 }
 
 static int read_callback(const char *path, char *buf, size_t size, off_t offset,
