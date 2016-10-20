@@ -78,22 +78,16 @@ static int open_callback(const char *path, struct fuse_file_info *fi) {
 static int read_callback(const char *path, char *buf, size_t size, off_t offset,
     struct fuse_file_info *fi) {
 
-  if (strcmp(path, filepath) == 0) {
-    size_t len = strlen(filecontent);
-    if (offset >= len) {
-      return 0;
-    }
-
-    if (offset + size > len) {
-      memcpy(buf, filecontent + offset, len - offset);
-      return len - offset;
-    }
-
-    memcpy(buf, filecontent + offset, size);
-    return size;
-  }
-
-  return -ENOENT;
+	(void) fi;
+	int index = path_index(path);
+	FILE *file_in = fopen(STORE_FILE, "rb");
+	int start = index == 0 ? 0 : file_offset_end[index-1];
+	fseek(file_in, start + offset, SEEK_SET);
+	fread(buf, size, 1, file_in);
+	printf("%d\n",file_offset_end[index]-start);
+	printf("%s\n", buf);
+	fclose(file_in);
+	return size;
 }
 
 static struct fuse_operations fuse_example_operations = {
@@ -105,6 +99,29 @@ static struct fuse_operations fuse_example_operations = {
 
 int main(int argc, char *argv[])
 {
+	FILE *file_in = fopen(BUF_FILE, "rb");
+	fseek(file_in, 0, SEEK_SET);
+	file_count = 0;
+	fread(&file_count, sizeof(int), 1, file_in);
+		if (file_count != 0) {
+		file_offset_end = (int*)malloc(file_count*sizeof(int));
+		file_name = (char**)malloc(file_count*sizeof(char*));
+		file_size = (int*)malloc(file_count*sizeof(int));
+		int i = 0;
+		for (i = 0; i< file_count; i++) {
+			file_name[i] = (char*)malloc(NAME_LENGTH*sizeof(char));
+		}
+		for (i = 0; i < file_count; i++) {
+			struct file_info info;
+			memset(info.file_name, 0, NAME_LENGTH);
+			fread(&info, sizeof(struct file_info), 1, file_in);
+			file_size[i] = info.file_size;
+			file_offset_end[i] = info.file_offset;
+			memset(file_name[i], 0, NAME_LENGTH);
+			strcpy(file_name[i], info.file_name);
+		}
+	}
+	fclose(file_in);
   return fuse_main(argc, argv, &fuse_example_operations, NULL);
 }
 
