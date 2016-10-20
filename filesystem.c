@@ -7,7 +7,21 @@
 static const char *filepath = "/file";
 static const char *filename = "file";
 static const char *filecontent = "I'm the content of the only file available there\n";
-
+struct file_info {
+	char file_name[NAME_LENGTH];
+	int file_size;
+	int file_offset;
+};
+static int path_index(const char* path)
+{
+	int i  = 0;
+	for (i = 0; i < file_count; i++) {
+		if (strcmp(file_name[i], path)==0) {
+			return i;
+		}
+	}
+	return -1;
+}
 static int getattr_callback(const char *path, struct stat *stbuf) {
   memset(stbuf, 0, sizeof(struct stat));
 
