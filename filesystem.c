@@ -86,6 +86,22 @@ static int read_callback(const char *path, char *buf, size_t size, off_t offset,
 	fclose(file_in);
 	return size;
 }
+static int fst_utimens (const char *v, const struct timespec tv[2])
+{
+	return 0;
+}
+static int fst_getxattr (const char *x, const char *y, char *z, size_t f)
+{
+	return 0;
+}
+static int fst_setxattr (const char *x, const char *y, const char *z, size_t l, int f)
+{
+	return 0;
+}
+static int fst_listxattr (const char *x, char *y, size_t z)
+{
+	return 0;
+}
 static int fst_write (const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
 	int index = path_index(path);
@@ -159,15 +175,25 @@ static int fst_unlink (const char *path)
 	memset(file_name[index], 0, NAME_LENGTH);
 	return 0;
 }
+static int fst_truncate (const char * z, off_t v)
+{
+	return 0;
+}
 static struct fuse_operations fuse_example_operations = {
-  .getattr = getattr_callback,
-  .open = open_callback,
-  .read = read_callback,
-  .readdir = readdir_callback,
-  .mknod = fst_mknod,
-  .write = fst_write,
-  .unlink = fst_unlink
+	.getattr = getattr_callback,
+	.mknod = fst_mknod,
+	.open = open_callback,
+	.read = read_callback,
+	.readdir = readdir_callback,
+	.utimens = fst_utimens,
+	.setxattr	= fst_setxattr,
+	.getxattr	= fst_getxattr,
+	.listxattr = fst_listxattr,
+	.write = fst_write,
+	.truncate = fst_truncate,
+	.unlink = fst_unlink
 };
+
 
 int main(int argc, char *argv[])
 {
