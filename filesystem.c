@@ -89,12 +89,89 @@ static int read_callback(const char *path, char *buf, size_t size, off_t offset,
 	fclose(file_in);
 	return size;
 }
-
+static int fst_write (const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+{
+	int index = path_index(path);
+	if (index == -1) {
+		return -ENOENT;
+	}
+	FILE *file_in = fopen(STORE_FILE, "rb+");
+	int start = index == 0 ? 0 : file_offset_end[index-1];
+	fseek(file_in, start+offset, SEEK_SET);
+	fwrite(buf, size, 1, file_in);
+	printf("%d", start);
+	printf("%s\n", buf);
+	if (offset == 0) {
+		file_size[index] = 0;
+	}
+	file_offset_end[index] = start + offset;
+	file_size[index]+=size;
+	fclose(file_in);
+	return size;
+}
+static int fst_mknod (const char * path, mode_t mode, dev_t dev)
+{
+	int index = path_index(path);
+	if (index != -1) {
+		return -ENOENT;
+	}
+	else {
+		file_count++;
+		int i  = 0;
+		int* buf = (int*)malloc(file_count*sizeof(int));
+		char **buf_name = (char**)malloc(file_count*sizeof(char*));
+		int* size_buf = (int*)malloc(file_count*sizeof(int));
+		for (i = 0; i < file_count; i++) {
+			buf_name[i] = (char*)malloc(NAME_LENGTH*sizeof(char));
+		}
+		for (i  = 0; i < file_count-1; i++) {
+			buf[i] = file_offset_end[i];
+			size_buf[i] = file_size[i];
+			memset(buf_name[i], 0, NAME_LENGTH);
+			strcpy(buf_name[i], file_name[i]);
+		}
+		if (file_count != 1) {
+			for(i = 0; i < file_count-2; i++) {
+				free(file_name[i]);
+			}
+			free(file_name);
+			free(file_offset_end);
+			free(file_size);
+		}
+		for (i = 0; i < file_count-1; i++) {
+			printf("%s\n", buf_name[i]);
+		}
+		buf[file_count-1] = file_count==1 ? 0 : buf[file_count-2];
+		size_buf[file_count-1] = 0; 
+		memset(buf_name[file_count-1], 0, NAME_LENGTH);
+		strcpy(buf_name[file_count-1], path);
+		for (i = 0; i < file_count; i++) {
+			printf("%s\n", buf_name[i]);
+			printf("%d\n", buf[i]);
+		}
+		file_name = buf_name;
+		file_offset_end = buf;
+		file_size = size_buf;
+	}
+	return 0;
+}
+static int fst_unlink (const char *path)
+{
+	int index = path_index(path);
+	if (index == -1) {
+		return -ENOENT;
+	}
+	memset(file_name[index], 0, NAME_LENGTH);
+	return 0;
+}
 static struct fuse_operations fuse_example_operations = {
   .getattr = getattr_callback,
   .open = open_callback,
   .read = read_callback,
   .readdir = readdir_callback,
+  .mknod = fst_mknod,
+  .write = fst_write,
+  .unlink = fst_unlink
 };
 
 int main(int argc, char *argv[])
@@ -122,6 +199,26 @@ int main(int argc, char *argv[])
 		}
 	}
 	fclose(file_in);
-  return fuse_main(argc, argv, &fuse_example_operations, NULL);
+	int x = fuse_main(argc, argv, &fuse_example_operations, NULL);
+	file_in = fopen(BUF_FILE, "rb+");
+	fseek(file_in, 0, SEEK_SET);
+	fwrite(&file_count, sizeof(int), 1, file_in);
+	int i = 0;
+	for (i = 0; i < file_count; i++) {
+		struct file_info info;
+		memset(info.file_name, 0, NAME_LENGTH);
+		strcpy(info.file_name, file_name[i]);
+		info.file_size = file_size[i];
+		info.file_offset = file_offset_end[i];
+		fwrite(&info, sizeof(struct file_info), 1, file_in);
+	}
+	for (i = 0; i < file_count-2; i++) {
+		free(file_name[i]);
+	}
+	free(file_name);
+	free(file_offset_end);
+	free(file_size);
+	fclose(file_in);
+	return x;
 }
 
