@@ -41,9 +41,6 @@ static int getattr_callback(const char *path, struct stat *stbuf) {
 	}
 	stbuf->st_mode = S_IFREG | 0777;
 	stbuf->st_nlink = 1;
-	int start = index == 0 ? 0 : file_offset_end[index-1];
-		int size = file_offset_end[index]-start;
-		printf("%d\n", size);
 	stbuf->st_size = file_size[index];
 	return 0;
   }
@@ -99,8 +96,6 @@ static int fst_write (const char *path, const char *buf, size_t size, off_t offs
 	int start = index == 0 ? 0 : file_offset_end[index-1];
 	fseek(file_in, start+offset, SEEK_SET);
 	fwrite(buf, size, 1, file_in);
-	printf("%d", start);
-	printf("%s\n", buf);
 	if (offset == 0) {
 		file_size[index] = 0;
 	}
