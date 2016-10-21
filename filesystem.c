@@ -3,10 +3,11 @@
 #include <fuse.h>
 #include <string.h>
 #include <errno.h>
-
+#include <stdio.h>
+#include <stdlib.h>
 #define NAME_LENGTH 255
 static int *file_offset_end;
-static const char **filename;
+static char **file_name;
 static int *file_size;
 static int file_count = 0;
 #define STORE_FILE "/home/nastya/Desktop/PMVS4/all_file"
@@ -50,15 +51,14 @@ static int getattr_callback(const char *path, struct stat *stbuf) {
 
 static int readdir_callback(const char *path, void *buf, fuse_fill_dir_t filler,
     off_t offset, struct fuse_file_info *fi) {
-  (void) offset;
-  (void) fi;
 
   filler(buf, ".", NULL, 0);
   filler(buf, "..", NULL, 0);
 
+	int i;
 	for (i = 0; i < file_count; i++) {
 		if(strlen(file_name[i])!= 0) {
-  		filler(buf, filename[i]+1, NULL, 0);
+  		filler(buf, file_name[i]+1, NULL, 0);
 		}
 	}
 
