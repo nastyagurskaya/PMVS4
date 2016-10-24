@@ -10,8 +10,8 @@ static int *file_offset_end;
 static char **file_name;
 static int *file_size;
 static int file_count = 0;
-#define STORE_FILE "/home/nastya/Desktop/PMVS4/all_file"
-#define BUF_FILE "/home/nastya/Desktop/PMVS4/buffer_file"
+#define STORE_FILE "/home/nastya/Documents/all_file"
+#define BUF_FILE "/home/nastya/Documents/buffer_file"
 struct file_info {
 	char file_name[NAME_LENGTH];
 	int file_size;
